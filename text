@@ -1,0 +1,573 @@
+################BD
+<?php
+    define('USER', 'Gridjo');
+    define('PASSWORD', 'Wertol123');
+    define('HOST', 'localhost');
+    define('DATABASE', 'laba');
+    try {
+        $connection = new PDO("mysql:host=".HOST.";dbname=".DATABASE, USER, PASSWORD);
+    } catch (PDOException $e) {
+        exit("Error: " . $e->getMessage());
+    }
+?>
+##############exit
+<?php
+    session_start();
+    include('product.php');
+
+    unset($_SESSION['usser_login']);
+    unset($_SESSION['user_id']);
+    unset($productmass);
+
+    header('Location: index.php');
+
+?>
+###############Register
+<?php
+    session_start();
+    include('db.php');
+    if (isset($_POST['register'])) {
+        $username = $_POST['username'];
+        $email = $_POST['email'];
+        $password = $_POST['password'];
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+        $query = $connection->prepare("SELECT * FROM users WHERE email=:email");
+        $query->bindParam("email", $email, PDO::PARAM_STR);
+        $query->execute();
+        if ($query->rowCount() > 0) {
+           // echo '<p class="error">Этот адрес уже зарегистрирован!</p>';
+        }
+        if ($query->rowCount() == 0) {
+            $query = $connection->prepare("INSERT INTO users(username,password,email) VALUES (:username,:password_hash,:email)");
+            $query->bindParam("username", $username, PDO::PARAM_STR);
+            $query->bindParam("password_hash", $password_hash, PDO::PARAM_STR);
+            $query->bindParam("email", $email, PDO::PARAM_STR);
+            $result = $query->execute();
+            if ($result) {
+                header('Location: login.php');
+            } else {
+               // echo '<p class="error">Неверные данные!</p>';
+            }
+        }
+    }
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Document</title>
+</head>
+<body>
+<header>
+    <div class="header">
+      <a href="#" class="logo"><img src="#" alt=""></a>
+      <div class="header-right">
+        <div class="search-container">
+          <form class="formSE" action="/action_page.php">
+            <input class="search" type="text" placeholder="Search.." name="search">
+          </form>
+        </div>
+        <a href="index.php">Home</a>
+        <a href="login.php">LogIn</a>
+        <a class="active" href="register.php">Signup</a>
+        <a href="#contact">Contact</a>
+        <a href="#about">About</a>
+        <?
+        if(isset($_SESSION['user_id'])){
+        echo "<a href='exit.php'>".$_SESSION['usser_login']."</a>";
+        echo "<a href='cart.php'>Cart</a>";
+        echo "<a href='orders.php'>Orders</a>";
+        }
+        ?>
+
+        <button class="book-button">BOOK</button>
+      </div> 
+    </div>
+  </header>
+<form method="post" action="" name="signup-form" class="formRE">
+    <div class="form-element">
+        <label>Username</label>
+        <input type="text" name="username" pattern="[a-zA-Z0-9]+" required />
+    </div>
+    <div class="form-element">
+        <label>Email</label>
+        <input type="email" name="email" required />
+    </div>
+    <div class="form-element">
+        <label>Password</label>
+        <input type="password" name="password" required />
+    </div>
+    <button class="book-button" type="submit" name="register" value="register">Register</button>
+</form>
+</body>
+</html>
+###############login
+<?php
+    session_start();
+    include('db.php');
+    if (isset($_POST['login'])) {
+        $username = $_POST['username'];
+        $password = $_POST['password'];
+        $query = $connection->prepare("SELECT * FROM users WHERE username=:username");
+        $query->bindParam("username", $username, PDO::PARAM_STR);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+        if (!$result) {
+           // echo '<p class="error">Неверные пароль или имя пользователя!</p>';
+        } else {
+            if (password_verify($password, $result['password'])) {
+                $_SESSION['user_id'] = $result['id'];
+                $_SESSION['usser_login']=$result['username'];
+                header('Location: index.php');
+            } else {
+              //  echo '<p class="error"> Неверные пароль или имя пользователя!</p>';
+            }
+        }
+    }
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <title></title>
+</head>
+<body>
+<header>
+    <div class="header">
+      <a href="#" class="logo"><img src="#" alt=""></a>
+      <div class="header-right">
+
+
+        <div class="search-container">
+          <form class="formSE" action="/action_page.php">
+            <input class="search" type="text" placeholder="Search.." name="search">
+          </form>
+        </div>
+
+
+        <a href="index.php">Home</a>
+        <a class="active" href="login.php">LogIn</a>
+        <a href="register.php">Signup</a>
+        <a href="#contact">Contact</a>
+        <a href="#about">About</a>
+        <?
+        if(isset($_SESSION['user_id'])){
+        echo '<a href="exit.php">'.$_SESSION['usser_login']."</a>";
+        echo "<a href='cart.php'>Cart</a>";
+        echo "<a href='orders.php'>Orders</a>";
+        }
+        ?>
+        <button class="book-button">BOOK</button>
+      </div>
+    </div>
+  </header>
+<form class="formRE" method="post" action="" name="signin-form">
+  <div class="form-element">
+    <label>Username</label>
+    <input type="text" name="username" pattern="[a-zA-Z0-9]+" required />
+  </div>
+  <div class="form-element">
+    <label>Password</label>
+    <input type="password" name="password" required />
+  </div>
+  <button class="book-button" type="submit" name="login" value="login">Log In</button>
+</form>
+</body>
+</html>
+##########index
+<?
+session_start();
+include('db.php');
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <title>mag</title>
+</head>
+<body>
+<header>
+    <div class="header">
+      <a href="#" class="logo"><img src="#" alt=""></a>
+      <div class="header-right">
+
+
+        <div class="search-container">
+          <form class="formSE" action="/action_page.php">
+            <input class="search" type="text" placeholder="Search.." name="search">
+          </form>
+        </div>
+
+
+        <a class="active" href="index.php">Home</a>
+        <a href="login.php">LogIn</a>
+        <a href="register.php">Signup</a>
+        <a href="#contact">Contact</a>
+        <a href="#about">About</a>
+        <?
+        if(isset($_SESSION['user_id'])){
+        echo "<a href='exit.php'>".$_SESSION['usser_login']."</a>";
+        echo "<a href='cart.php'>Cart</a>";
+        echo "<a href='orders.php'>Orders</a>";
+        }
+        ?>
+        <button class="book-button">BOOK</button>
+      </div>
+    </div>
+  </header>
+<div class="main">
+    <?
+    $query = $connection->prepare("SELECT * FROM post");
+    $query->execute();
+    $result = $query->fetchAll(PDO::FETCH_ASSOC);
+    $i=0;   
+    foreach ($result as $product) {
+        $i++;
+        if($i%5==1){
+            echo'<div class="newcol">';
+        }
+        echo '<div class="product">';
+        echo '<img src="' . $product["img"] . '" alt="' . $product["title"] . '">';
+        echo '<h2>' . $product["title"] . '</h2>';
+        echo '<p>' . $product["description"] . '</p>';
+        echo '<p>Price: $' . $product["price"] . '</p>';
+        if(!isset($_SESSION['user_id'])){
+            echo '<form class="formBut" action="login.php">';
+            echo '<button class="book-button" >Add to Cart</button>';
+            
+            echo '</form>';
+        }
+        if(isset($_SESSION['user_id'])){
+            echo '<form class="formBut" action="cart.php" method="POST">';
+            echo '<button class="book-button">Add to Cart</button>';
+            echo '<input name="cart-data" value="'.$product["id"].'">';
+            echo '</form>';
+        }
+        echo '</div>';
+        if($i%5==0){
+            echo '</div>';
+        }
+    }
+    ?>
+</div>
+</div>
+</body>
+</html>
+###############cart
+<?
+session_start();
+include('db.php');
+include('product.php');
+if(!isset($_SESSION['user_id'])){
+    header('Location: login.php');
+}
+if (isset($_POST['cart-data'])) {
+    
+    $postid = $_POST['cart-data'];
+    $userid = $_SESSION['user_id'];
+    $query = $connection->prepare("INSERT INTO cart(postid, userid) VALUES(:postid,:userid)");
+    $query->bindParam("postid", $postid, PDO::PARAM_STR);
+    $query->bindParam("userid", $userid, PDO::PARAM_STR);
+    $result = $query->execute();
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Document</title>
+</head>
+<body>
+<header>
+    <div class="header">
+      <a href="#" class="logo"><img src="#" alt=""></a>
+      <div class="header-right">
+        <div class="search-container">
+          <form class="formSE" action="/action_page.php">
+            <input class="search" type="text" placeholder="Search.." name="search">
+          </form>
+        </div>
+        <a href="index.php">Home</a>
+        <a href="login.php">LogIn</a>
+        <a href="register.php">Signup</a>
+        <a href="#contact">Contact</a>
+        <a href="#about">About</a>
+        <?
+        if(isset($_SESSION['user_id'])){
+        echo "<a href='exit.php'>".$_SESSION['usser_login']."</a>";
+        echo "<a class='active' href='cart.php'>Cart</a>";
+        echo "<a href='orders.php'>Orders</a>";
+        }
+        ?>
+
+        <button class="book-button">BOOK</button>
+      </div>
+     
+    </div>
+
+</header>
+<div class="main">
+    <?
+    $userid = $_SESSION['user_id'];
+    $query = $connection->prepare("SELECT * FROM cart WHERE userid=:userid");
+    $query->bindParam("userid", $userid, PDO::PARAM_STR);
+    $query->execute();
+    $result = $query->fetchAll(PDO::FETCH_ASSOC);
+    $i=0; 
+    foreach($result as $resul){
+        $postid=$resul['postid'];
+        $query = $connection->prepare("SELECT * FROM post WHERE id=:postid");
+        $query->bindParam("postid", $postid, PDO::PARAM_STR);
+        $query->execute();
+        $product = $query->fetch(PDO::FETCH_ASSOC);
+        $i++;
+        if($i%5==1){
+            echo'<div class="newcol">';
+        }
+        echo '<div class="product">';
+        echo '<img src="' . $product["img"] . '" alt="' . $product["title"] . '">';
+        echo '<h2>' . $product["title"] . '</h2>';
+        echo '<p>' . $product["description"] . '</p>';
+        echo '<p>Price: $' . $product["price"] . '</p>';
+        echo '</div>';
+        if($i%5==0){
+            echo '</div>';
+        }
+    }
+    ?>
+<div class="oplata">
+    <form class="formRE" method="POST" action="cart.php" name="signin-form">
+        <label>Password</label>
+        <input type="password" name="password" required />
+        <button class="book-button" type="submit" name="login" value="login">BUY</button>
+    </form>
+</div>
+<?
+if (isset($_POST['password'])){
+    $username = $_SESSION['usser_login'];
+    $password = $_POST['password'];
+    $query = $connection->prepare("SELECT * FROM users WHERE username=:username");
+    $query->bindParam("username", $username, PDO::PARAM_STR);
+    $query->execute();
+    $result = $query->fetch(PDO::FETCH_ASSOC);
+    if (!$result) {
+        // echo '<p class="error">Неверные пароль или имя пользователя!</p>';
+    } 
+     else {
+        if (password_verify($password, $result['password'])) {
+            $userid = $_SESSION['user_id'];
+            $query = $connection->prepare("SELECT * FROM cart WHERE userid=:userid");
+            $query->bindParam("userid", $userid, PDO::PARAM_STR);
+            $query->execute();
+            $result = $query->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($result as $resul) {
+                $postid=$resul['postid'];
+                $query = $connection->prepare("INSERT INTO orders(postid, userid) VALUES(:postid,:userid)");
+                $query->bindParam("postid", $postid, PDO::PARAM_STR);
+                $query->bindParam("userid", $userid, PDO::PARAM_STR);
+                $result = $query->execute();
+            }
+            
+            $query = $connection->prepare("DELETE FROM cart WHERE userid=:userid");
+            $query->bindParam("userid", $userid, PDO::PARAM_STR);
+            $result = $query->execute();
+        }
+    }
+}
+?>
+</body>
+</html>
+#####################################styles
+label {
+    width: 150px;
+    display: inline-block;
+    text-align: left;
+    font-size: 1.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+form.formRE {
+    margin: 25px auto;
+    padding: 20px;
+    color: rgb(255, 255, 255);
+    background-color: #0b1622;
+    width: 500px;
+    background-color: #0b1622;
+}
+
+p.success,
+p.error {
+    color: white;
+    font-family: lato;
+    background: yellowgreen;
+    display: inline-block;
+    padding: 2px 10px;
+}
+
+p.error {
+    background: orangered;
+}
+
+body {
+    margin: 0;
+    background-color: #123;
+}
+
+header {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #123;
+    color: white;
+    min-height: 50px;
+    padding: 0px;
+}
+
+.main-heading {
+    max-width: 800px;
+    text-align: center;
+    margin: auto;
+}
+
+.main-heading h1 {
+    font-size: 50px;
+}
+
+.main-heading p {
+    font-size: 18px;
+    line-height: 26px;
+}
+
+.header {
+    overflow: hidden;
+    background-color: #0b1622;
+    padding: 10px 20px;
+}
+
+.header img {
+    width: 50px;
+}
+
+.header a {
+    float: left;
+    color: rgb(255, 255, 255);
+    text-align: center;
+    padding: 12px;
+    text-decoration: none;
+    font-size: 18px;
+    line-height: 25px;
+    border-radius: 4px;
+}
+
+.header a.active {
+    float: left;
+    color: rgb(255, 255, 255);
+    background-color: #081018;
+    text-align: center;
+    padding: 12px;
+    text-decoration: none;
+    font-size: 18px;
+    line-height: 25px;
+    border-radius: 4px;
+}
+
+form.formRE input {
+    padding: 8px 20px;
+    border-radius: 50px;
+    background-color: #123;
+    border-color: white;
+    margin-right: 30px;
+    border: 0;
+    color: white;
+}
+
+form.formSE input {
+    padding: 8px 20px;
+    border-radius: 50px;
+    background-color: #123;
+    border-color: white;
+    margin-right: 30px;
+    border: 0;
+    color: white;
+}
+
+.book-button {
+    padding: 10px 30px;
+    border-radius: 50px;
+}
+
+.header a.logo {
+    font-size: 25px;
+    font-weight: bold;
+    padding: 0 !important;
+}
+
+.header-right {
+    float: right;
+    display: flex;
+    align-items: center;
+}
+
+@media screen and (max-width: 500px) {
+    .header a {
+        float: none;
+        display: block;
+        text-align: left;
+    }
+    .header-right {
+        float: none;
+    }
+}
+
+.main {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.newcol {
+    display: flex;
+    flex-direction: row;
+}
+
+.product {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 200px;
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid #ddd;
+    color: white;
+    border-radius: 5px;
+}
+
+.product img {
+    width: 100%;
+    max-width: 200px;
+    max-height: 200px;
+    object-fit: contain;
+}
+
+.product h2 {
+    margin: 10px 0;
+}
+
+.product p {
+    margin: 5px 0;
+}
+
+.formBut input {
+    opacity: 0;
+    height: 0px;
+    width: 0px;
+}
